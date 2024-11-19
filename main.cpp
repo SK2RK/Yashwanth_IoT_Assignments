@@ -1,72 +1,26 @@
-#include <Arduino.h>
-#if CONFIG_FREERTOS_UNICORE
-#define TASK_RUNNING_CORE 0
-#else
-#define TASK_RUNNING_CORE 1
-#endif
+/**
+ * @file 01_DigitalWrite_Example.ino
+ *
+ * Description: This program demonstrates controlling an LED using a button.
+ * When the button is pressed, the LED turns on. Otherwise, it remains off.
+ *
+ */
 
-#define ANALOG_INPUT_PIN A0
+#include <Arduino.h> 
 
-#ifndef LED_BUILTIN
-#define LED_BUILTIN 13
-#endif
-
-void TaskBlink(void *pvParameters);
-void TaskAnalogRead(void *pvParameters);
-TaskHandle_t analog_read_task_handle;
+#define LED_PIN 4      // Define the pin connected to the LED.
+#define BUTTON_PIN 5   // Define the pin connected to the button.
 
 void setup() {
-    Serial.begin(115200);
-
-    uint32_t blink_delay = 1000;
-    xTaskCreate(TaskBlink, "Task Blink", 2048, (void *)&blink_delay, 1, NULL);
-    xTaskCreatePinnedToCore(TaskAnalogRead, "Analog Read", 2048, NULL, 5, &analog_read_task_handle, 0);
-
-    Serial.println("Basic Multi Threading Arduino Example");
-    Serial.print("Loop Core ID: ");
-    Serial.println(xPortGetCoreID());
+  pinMode(LED_PIN, OUTPUT);  // Set LED pin as output to control the LED.
+  pinMode(BUTTON_PIN, INPUT); // Set button pin as input to read its state.
 }
 
 void loop() {
-    if (analog_read_task_handle != NULL) {
-        delay(1000);
-        vTaskDelete(analog_read_task_handle);
-        Serial.println("TaskAnalogRead Deleted");
-        analog_read_task_handle = NULL;
-    }
-}
-
-void TaskBlink(void *pvParameters) {
-    uint32_t blink_delay = *((uint32_t *)pvParameters);
-    pinMode(LED_BUILTIN, OUTPUT);
-    Serial.println("TaskBlink created");
-    Serial.print("TaskBlink Core ID: ");
-    Serial.println(xPortGetCoreID());
-
-    for (;;) {
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(blink_delay);
-        digitalWrite(LED_BUILTIN, LOW);
-        delay(blink_delay);
-    }
-}
-
-void TaskAnalogRead(void *pvParameters) {
-    (void)pvParameters;
-    Serial.println("TaskAnalogRead created");
-
-    if (digitalPinToAnalogChannel(ANALOG_INPUT_PIN) == -1) {
-        Serial.printf("TaskAnalogRead cannot work because pin %d is not usable for ADC.\n", ANALOG_INPUT_PIN);
-        analog_read_task_handle = NULL;
-        vTaskDelete(NULL);
-    }
-
-    Serial.print("TaskAnalogRead Core ID: ");
-    Serial.println(xPortGetCoreID());
-
-    for (;;) {
-        int sensorValue = analogRead(ANALOG_INPUT_PIN);
-        Serial.println(sensorValue);
-        delay(100);
-    }
+  if (!digitalRead(BUTTON_PIN)) {  // Check if the button is pressed (LOW state).
+    digitalWrite(LED_PIN, HIGH);  // Turn the LED on if the button is pressed.
+  }
+  else {
+    digitalWrite(LED_PIN, LOW);  // Turn the LED off if the button is not pressed
+  }
 }
